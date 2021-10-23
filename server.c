@@ -70,8 +70,8 @@ int main()
                     if( flag_logged == 0 )
                     {
                         
-                        int fd[2];
-                        pipe(fd);
+                        int fd[2];                                                            // bucata de cod ( partea cu pipe ) adaptata de la :
+                        pipe(fd);                                                             // https://www.geeksforgeeks.org/pass-the-value-from-child-process-to-parent-process/
                         pid_t pid = fork();
                         
                         if( pid == 0 ) 
@@ -85,8 +85,8 @@ int main()
                                 perror("eroare");
 
                             char buffer[20];
-                            while (fgets(buffer, 20, fp))
-                                {   
+                            while (fgets(buffer, 20, fp))                                       // bucla de cod ( citire linii din fisier) adaptata de la:
+                                {                                                               // https://www.learnc.net/c-tutorial/c-read-text-file/?fbclid=IwAR0FuYYq4mAmXTf8k9lphUFGfSd-99ubbYY6MdZ51O6fd9Ygm2MHU4TKtCU
                                     buffer[strlen(buffer)-1] = '\0';
                                     if( strcmp( "ana" , buffer ) == 0 )
                                         {
@@ -110,9 +110,31 @@ int main()
                         char raspuns[2];
                         int n = read(fd[0], raspuns, 2);
 
+                        if( raspuns[0] == 'D' )
+                        {
+                            flag_logged = 1;
+                            strcpy( buff , "24" );
 
-                        printf("[tata]%s \n", raspuns); 
+                            if ((num = write(sv_to_cl, buff, strlen(buff))) == -1)
+                                perror("Problema la scriere in FIFO!");
 
+                            sleep(1);
+
+                            if ((num = write(sv_to_cl, "User conectat cu succes.", 24 )) == -1)
+                                perror("Problema la scriere in FIFO!");
+                        }
+                        else
+                        {
+                            strcpy( buff , "29" );
+
+                            if ((num = write(sv_to_cl, buff, strlen(buff))) == -1)
+                                perror("Problema la scriere in FIFO!");
+
+                            sleep(1);
+
+                            if ((num = write(sv_to_cl, "User inexistent. Reincercati!", 29 )) == -1)
+                                perror("Problema la scriere in FIFO!");
+                        }
                     } 
                     else
                     {
