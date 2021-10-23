@@ -1,0 +1,83 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <string.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#define client_to_server "client_to_server"
+#define server_to_client "server_to_client"
+
+int char_to_int( char nr[] )
+{
+    int numar;
+    int power = 1;
+
+    for(int i = strlen(nr) - 1 ; i >= 0 ; i-- )
+    {
+        numar = numar + ( nr[i] - '0' ) * power;
+        power = power * 10;
+    }    
+
+    return numar;
+}
+
+int main()
+{   
+    printf("[client] Am deschis sesiunea! \n\n");
+    char s[300],raspuns[300], byts_msg1[5], byts_msg2[5];
+    int num, cl_to_sv, sv_to_cl, flag_comm_valid=0;
+    int nr_byts , nr_byts_int;
+
+    cl_to_sv = open(client_to_server, O_WRONLY);        // deschid ca sa SCRIU
+    sv_to_cl = open(server_to_client, O_RDONLY);        // deschid ca sa CITESC
+
+
+    printf("[client] Introduceti o comanda: ");
+
+    while (gets(s), !feof(stdin)) 
+    {   
+        
+        nr_byts = strlen(s);
+        sprintf( byts_msg1 , "%d" , nr_byts );              // in byts_msg1 scriu numarul de byts pe care il trimit cu msg1
+
+        if ((num = write(cl_to_sv, byts_msg1 , strlen(byts_msg1))) == -1)
+                perror("Problema la scriere in FIFO!");
+
+        sleep(1);
+
+        if ((num = write(cl_to_sv, s , nr_byts)) == -1)
+                perror("Problema la scriere in FIFO!");
+
+        if ((num = read(sv_to_cl, byts_msg2, 5)) == -1)
+            perror("Eroare la citirea din FIFO!");
+        else 
+        {
+            byts_msg2[num] = '\0';
+
+            nr_byts_int = char_to_int(byts_msg2);
+
+            if ((num = read(sv_to_cl, raspuns , nr_byts_int)) == -1)
+                perror("Eroare la citirea din FIFO!");
+            else
+            {
+                raspuns[num] = '\0';
+
+            if( strcmp( raspuns , "quit" ) == 0 )
+            {
+                printf("[client] Sesiunea se va inchide! \n");
+                close(sv_to_cl);
+                close(cl_to_sv);
+                return 0;
+            }
+
+                printf("[client] S-a primit raspuns de la [server]: %s \n" , raspuns);
+            }
+        }
+
+        printf("[client] Introduceti o comanda: ");
+    }
+    
+}
