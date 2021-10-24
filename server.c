@@ -6,6 +6,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <sys/socket.h>
+#include <pthread.h> 
+#include <sys/wait.h>
+#include <dirent.h>           
+
 
 #define client_to_server "client_to_server"
 #define server_to_client "server_to_client"
@@ -162,7 +167,15 @@ int main()
                     }
                     else
                     {
-                        // prelucrare....
+                        strcpy( buff , "40" );
+
+                        if ((num = write(sv_to_cl, buff, strlen(buff))) == -1)
+                            perror("Problema la scriere in FIFO!");
+
+                        sleep(1);
+
+                        if ((num = write(sv_to_cl, "Informatii despre utilizatorii logati...", strlen("Informatii despre utilizatorii logati...") )) == -1)
+                            perror("Problema la scriere in FIFO!");
                     }
 
                 }
@@ -199,7 +212,7 @@ int main()
                 }
                 else if( strncmp( s , "get-proc-info:" , 14) == 0 )
                 {
-                    printf("[server] Utilizatorul vrea sa afle informatii despre un pid. \n");
+                    printf("[server] Utilizatorul vrea sa afle informatii despre un pid \n");
 
                     if( flag_logged == 0 )
                     {
@@ -215,7 +228,110 @@ int main()
                     }
                     else
                     {
+                        int sockp[2], child; 
 
+                        if (socketpair(AF_UNIX, SOCK_STREAM, 0, sockp) < 0) 
+                        { 
+                            perror("Err... socketpair"); 
+                            exit(1); 
+                        }
+
+                        if ((child = fork()) == -1) perror("Err...fork"); 
+                        else if (child == 0 )   //copil 
+                        { 
+                            close(sockp[1]); 
+
+                            char cale_pid[25]= "/proc/";
+                            char stats[1000], stat_line[300];
+                            char pid_necesar[10];
+                            int octeti_socket = strlen(stats);
+                            char octeti_socket_str[5];
+
+                            strcpy( pid_necesar , s +  14 );
+
+                            strcat(cale_pid , pid_necesar);
+
+                            DIR* dir = opendir(cale_pid);                               // bucata de cod adaptata dupa: https://stackoverflow.com/questions/12510874/how-can-i-check-if-a-directory-exists
+                            if(dir)
+                            {
+                                printf("[server] Acest director pentru pid exista! \n");
+                                closedir(dir);
+                            }
+                            else if (ENOENT == errno)
+                            {
+                                octeti_socket = strlen("Pid-ul nu exista.");
+                                sprintf( octeti_socket_str , "%d" , octeti_socket ); 
+
+                                if( write( sockp[0], octeti_socket_str, sizeof(octeti_socket_str) ) < 0 ) perror("[copil]Err...write");
+                                sleep(1);
+                                if( write( sockp[0], "Pid-ul nu exista.", sizeof("Pid-ul nu exista.") ) < 0 ) perror("[copil]Err...write"); 
+                                close(sockp[0]);                                                                                 // trimite mesaj la tata ca nu exista pid
+                                exit(2);
+                            }
+                            else
+                            {
+                                perror("eroare la deschidere");
+                            }
+
+                            strcat( cale_pid , "/status");
+                            FILE *stats_fd = fopen( cale_pid , "r" );
+
+                            if( stats_fd == NULL )
+                            {
+                                perror("eroare la deschidere");
+                            }
+
+                            while( fgets( stat_line , 300 , stats_fd ) )                                  // preiau doar info necesare
+                            {
+                                if ( strncmp( stat_line , "Name:" , 5) == 0 )
+                                strcat( stats , stat_line );
+                                else if( strncmp ( stat_line , "State:" , 6 ) == 0 )
+                                strcat( stats , stat_line );
+                                else if( strncmp ( stat_line , "Pid:" , 4 ) == 0 )
+                                strcat( stats , stat_line );
+                                else if( strncmp ( stat_line , "PPid:" , 5 ) == 0 )
+                                strcat( stats , stat_line );
+                                else if( strncmp ( stat_line , "Uid:" , 4 ) == 0 )
+                                strcat( stats , stat_line );
+                                else if( strncmp ( stat_line , "VmSize:" , 7 ) == 0 )
+                                {
+                                strcat( stats , stat_line );
+                                stats[strlen(stats)-1]='\0';
+                                break;
+                                }
+                            } 
+
+                            fclose(stats_fd);
+
+                            octeti_socket = strlen(stats);
+                            sprintf( octeti_socket_str , "%d" , octeti_socket ); 
+
+                            if( write( sockp[0], octeti_socket_str, sizeof(octeti_socket_str) ) < 0 ) perror("[copil]Err...write");
+                            sleep(1);
+                            if( write( sockp[0], stats, sizeof(stats) ) < 0 ) perror("[copil]Err...write"); 
+                            close(sockp[0]);
+                            exit(1);
+                        } 
+
+                            wait(NULL);
+                            close(sockp[0]); 
+                            int nr_octeti_socket;
+                            char nr_octeti[5];
+                            char raspuns_socket[1024];
+
+                            if (read(sockp[1], nr_octeti, 5) < 0) perror("[parinte]Err...read"); 
+                            nr_octeti_socket = char_to_int(nr_octeti);
+                            if (read(sockp[1], raspuns_socket, nr_octeti_socket) < 0) perror("[parinte]Err...read"); 
+
+                            close(sockp[1]); 
+
+                            if ((num = write(sv_to_cl, nr_octeti, strlen(nr_octeti))) == -1)
+                                perror("Problema la scriere in FIFO!");
+
+                            sleep(1);
+
+                            if ((num = write(sv_to_cl, raspuns_socket , strlen(raspuns_socket) )) == -1)
+                                perror("Problema la scriere in FIFO!");
                     }
                 }
                 else if( strcmp( s , "quit" ) == 0 )

@@ -6,6 +6,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <sys/socket.h>
+#include <pthread.h> 
+#include <sys/wait.h>
+#include <dirent.h>  
 
 #define client_to_server "client_to_server"
 #define server_to_client "server_to_client"
