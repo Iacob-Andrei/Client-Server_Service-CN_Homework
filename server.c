@@ -242,7 +242,7 @@ int main()
                             close(sockp[1]); 
 
                             char cale_pid[25]= "/proc/";
-                            char stats[1000], stat_line[300];
+                            char stats[1000]="\0", stat_line[300];
                             char pid_necesar[10];
                             int octeti_socket = strlen(stats);
                             char octeti_socket_str[5];
@@ -313,7 +313,6 @@ int main()
                             exit(1);
                         } 
 
-                            wait(NULL);
                             close(sockp[0]); 
                             int nr_octeti_socket;
                             char nr_octeti[5];
@@ -324,7 +323,8 @@ int main()
                             if (read(sockp[1], raspuns_socket, nr_octeti_socket) < 0) perror("[parinte]Err...read"); 
 
                             close(sockp[1]); 
-
+                            wait(NULL);
+                            
                             if ((num = write(sv_to_cl, nr_octeti, strlen(nr_octeti))) == -1)
                                 perror("Problema la scriere in FIFO!");
 
