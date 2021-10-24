@@ -56,11 +56,6 @@ int main()
             {
                 s[num] = '\0';
                 printf("[server] Am primit comanda: %s \n" , s);            // In s am comanda
-
-                for( int i = 0 ; i < strlen(s) ; i++ )
-                    if( s[i] >= 'A' && s[i] <= 'Z' )
-                        s[i] = s[i] + ( 'a' - 'A' );
-                // sa mai adaug scoaterea spatiilor
             
                 if( strncmp( s, "login:" , 6 ) == 0 )
                 {
@@ -88,7 +83,7 @@ int main()
                             while (fgets(buffer, 20, fp))                                       // bucla de cod ( citire linii din fisier) adaptata de la:
                                 {                                                               // https://www.learnc.net/c-tutorial/c-read-text-file/?fbclid=IwAR0FuYYq4mAmXTf8k9lphUFGfSd-99ubbYY6MdZ51O6fd9Ygm2MHU4TKtCU
                                     buffer[strlen(buffer)-1] = '\0';
-                                    if( strcmp( "ana" , buffer ) == 0 )
+                                    if( strcmp( username , buffer ) == 0 )
                                         {
                                             fclose(fp);
                                             write(1 , "DA" , 2 );
@@ -151,10 +146,27 @@ int main()
                 }
                 else if( strcmp( s , "get-logged-users" ) == 0 )
                 {
-                    // PRELUCRARE
                     printf("[server] Utilizatorul vrea sa se vada lista \n") ;
+
+                    if( flag_logged == 0 )
+                    {
+                        strcpy( buff , "48" );
+
+                        if ((num = write(sv_to_cl, buff, strlen(buff))) == -1)
+                            perror("Problema la scriere in FIFO!");
+
+                        sleep(1);
+
+                        if ((num = write(sv_to_cl, "Utilizatorul nu este logat pentru a vedea lista." , 48 )) == -1)
+                            perror("Problema la scriere in FIFO!");
+                    }
+                    else
+                    {
+                        // prelucrare....
+                    }
+
                 }
-                else if( strcmp( s , "logout" ) == 0 )                                                              // am comanda "logout"
+                else if( strcmp( s , "logout" ) == 0 )                                                              
                 {
                     printf("[server] Utilizatorul vrea sa se delogheze. \n");
 
@@ -183,6 +195,27 @@ int main()
 
                         if ((num = write(sv_to_cl, "Utilizator delogat cu succes." , 29 )) == -1)
                             perror("Problema la scriere in FIFO!");
+                    }
+                }
+                else if( strncmp( s , "get-proc-info:" , 14) == 0 )
+                {
+                    printf("[server] Utilizatorul vrea sa afle informatii despre un pid. \n");
+
+                    if( flag_logged == 0 )
+                    {
+                        strcpy( buff , "47" );
+
+                        if ((num = write(sv_to_cl, buff, strlen(buff))) == -1)
+                            perror("Problema la scriere in FIFO!");
+
+                        sleep(1);
+
+                        if ((num = write(sv_to_cl, "Utilizatorul nu este logat pentru a vedea info." , 47 )) == -1)
+                            perror("Problema la scriere in FIFO!");
+                    }
+                    else
+                    {
+
                     }
                 }
                 else if( strcmp( s , "quit" ) == 0 )
