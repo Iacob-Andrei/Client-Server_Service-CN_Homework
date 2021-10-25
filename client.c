@@ -31,6 +31,12 @@ int char_to_int( char nr[] )
 int main()
 {   
     printf("[client] Am deschis sesiunea! \n\n");
+    printf("[client] Comenzile pe care le puteti folosi sunt:\n");
+    printf("[client] 1) login:username \n");
+    printf("[client] 2) get-logged-users\n");
+    printf("[client] 3) get-proc-info:pid\n");
+    printf("[client] 4) logout \n");
+    printf("[client] 6) quit\n\n");
     char s[300],raspuns[300], byts_msg1[5], byts_msg2[5];
     int num, cl_to_sv, sv_to_cl, flag_comm_valid=0;
     int nr_byts , nr_byts_int;

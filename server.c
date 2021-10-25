@@ -296,13 +296,14 @@ int main()
                                 else if( strncmp ( stat_line , "VmSize:" , 7 ) == 0 )
                                 {
                                 strcat( stats , stat_line );
-                                stats[strlen(stats)-1]='\0';
                                 break;
                                 }
                             } 
 
+                            stats[strlen(stats)-1]='\0';
+                            
                             fclose(stats_fd);
-
+                            
                             octeti_socket = strlen(stats);
                             sprintf( octeti_socket_str , "%d" , octeti_socket ); 
 
