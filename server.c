@@ -1,34 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <string.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <pthread.h> 
-#include <sys/wait.h>
-#include <dirent.h>           
-
-
-#define client_to_server "client_to_server"
-#define server_to_client "server_to_client"
-
-
-int char_to_int( char nr[] )
-{
-    int numar;
-    int power = 1;
-
-    for(int i = strlen(nr) - 1 ; i >= 0 ; i-- )
-    {
-        numar = numar + ( nr[i] - '0' ) * power;
-        power = power * 10;
-    }    
-
-    return numar;
-}
+#include "libraries.h"
 
 
 int main()
@@ -36,7 +6,7 @@ int main()
 
     printf("[server] Am deschis serverul! \n\n");
 
-    char s[300], nr_byts_str[5], username[20], username_lista[20], buff[5];
+    char s[1024], nr_byts_str[5], username[20], username_lista[20], buff[5];
     int num, cl_to_sv, sv_to_cl, nr_byts_int;
     int flag_logged = 0;
     
@@ -167,15 +137,74 @@ int main()
                     }
                     else
                     {
-                        strcpy( buff , "40" );
+                        int socketp[2];
 
-                        if ((num = write(sv_to_cl, buff, strlen(buff))) == -1)
+                        if (socketpair(AF_UNIX, SOCK_STREAM, 0, socketp) < 0) 
+                        { 
+                            perror("Err... socketpair"); 
+                            exit(1); 
+                        }
+
+
+                        if( fork() == 0 )
+                        {
+                            close(socketp[1]);
+                            char infos[1024]="\0";
+                            char time[32];
+                            struct utmp *n;
+                            setutent();
+
+                            while(n=getutent())                                                                 // cod adaptat dupa: https://stackoverflow.com/questions/31472040/program-to-display-all-logged-in-users-via-c-program-on-ubuntu
+                            {
+                                if(n->ut_type==USER_PROCESS) 
+                                {
+                                    strcat(infos , n->ut_user);
+                                    strcat(infos , " ");
+                                    strcat(infos , n->ut_host);
+                                    strcat(infos , " ");
+                                    sprintf(time , "%d" , n->ut_tv );
+                                    strcat(infos , time);
+                                    strcat(infos , "\n"); 
+                                }
+                            }
+
+                            infos[strlen(infos)-1]='\0';
+                            
+                            
+                            int octeti_infos = strlen(infos);
+                            char octeti_infos_str[5];
+                            sprintf( octeti_infos_str , "%d" , octeti_infos ); 
+
+                            if( write( socketp[0], octeti_infos_str, strlen(octeti_infos_str) ) < 0 ) perror("[copil]Err...write");
+                            sleep(1);
+                            if( write( socketp[0], infos, strlen(infos) ) < 0 ) perror("[copil]Err...write"); 
+                            
+                            close(socketp[0]);
+                            exit(1);
+                        }
+
+                        
+                        close(socketp[0]); 
+                        int int_octeti_infos=0;
+                        char nr_octeti_infos[5]="\0";
+                        char raspuns_infos[1024]="\0";
+
+                        if (read(socketp[1], nr_octeti_infos, 5) < 0) perror("[parinte]Err...read"); 
+                        int_octeti_infos = char_to_int(nr_octeti_infos);
+                        if (read(socketp[1], raspuns_infos, int_octeti_infos) < 0) perror("[parinte]Err...read"); 
+
+                        close(socketp[1]); 
+                        
+                        wait(NULL);
+                        
+                        if ((num = write(sv_to_cl, nr_octeti_infos, strlen(nr_octeti_infos))) == -1)
                             perror("Problema la scriere in FIFO!");
 
                         sleep(1);
 
-                        if ((num = write(sv_to_cl, "Informatii despre utilizatorii logati...", strlen("Informatii despre utilizatorii logati...") )) == -1)
+                        if ((num = write(sv_to_cl, raspuns_infos , strlen(raspuns_infos) )) == -1)
                             perror("Problema la scriere in FIFO!");
+
                     }
 
                 }
@@ -307,17 +336,17 @@ int main()
                             octeti_socket = strlen(stats);
                             sprintf( octeti_socket_str , "%d" , octeti_socket ); 
 
-                            if( write( sockp[0], octeti_socket_str, sizeof(octeti_socket_str) ) < 0 ) perror("[copil]Err...write");
+                            if( write( sockp[0], octeti_socket_str, strlen(octeti_socket_str) ) < 0 ) perror("[copil]Err...write");
                             sleep(1);
-                            if( write( sockp[0], stats, sizeof(stats) ) < 0 ) perror("[copil]Err...write"); 
+                            if( write( sockp[0], stats, strlen(stats) ) < 0 ) perror("[copil]Err...write"); 
                             close(sockp[0]);
                             exit(1);
                         } 
 
                             close(sockp[0]); 
                             int nr_octeti_socket;
-                            char nr_octeti[5];
-                            char raspuns_socket[1024];
+                            char nr_octeti[5] = "\0";
+                            char raspuns_socket[1024] = "\0";
 
                             if (read(sockp[1], nr_octeti, 5) < 0) perror("[parinte]Err...read"); 
                             nr_octeti_socket = char_to_int(nr_octeti);

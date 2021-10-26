@@ -1,32 +1,5 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <string.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <pthread.h> 
-#include <sys/wait.h>
-#include <dirent.h>  
+#include "libraries.h"
 
-#define client_to_server "client_to_server"
-#define server_to_client "server_to_client"
-
-int char_to_int( char nr[] )
-{
-    int numar;
-    int power = 1;
-
-    for(int i = strlen(nr) - 1 ; i >= 0 ; i-- )
-    {
-        numar = numar + ( nr[i] - '0' ) * power;
-        power = power * 10;
-    }    
-
-    return numar;
-}
 
 int main()
 {   
@@ -37,7 +10,7 @@ int main()
     printf("[client] 3) get-proc-info:pid\n");
     printf("[client] 4) logout \n");
     printf("[client] 6) quit\n\n");
-    char s[300],raspuns[300], byts_msg1[5], byts_msg2[5];
+    char s[1024],raspuns[1024], byts_msg1[5], byts_msg2[5];
     int num, cl_to_sv, sv_to_cl, flag_comm_valid=0;
     int nr_byts , nr_byts_int;
 
